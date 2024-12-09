@@ -1,11 +1,22 @@
 use std::process::Command;
-use std::io::{self,Write};
+use std::io::{self, Write};
 use std::thread;
 use std::time::Duration;
+use std::path::Path;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 
 fn main() {
     set_cmd_title("Launcher");
 
+    let path = "config.txt";
+    let app_paths = match read_config(path) {
+        Ok(paths) => paths,
+        Err(_) => {
+            println!("Config file not found. Please check the file path.");
+            return;
+        }
+    };
 
     println!("What to start?:");
     println!("1 | School (Teams, VS code, Chrome)");
@@ -21,32 +32,31 @@ fn main() {
         .read_line(&mut input)
         .expect("Couldn't read the input!");
 
-
     let input = input.trim();
 
     match input {
         "1" => {
             println!("School");
-            start_program(r"c:\Users\stark\AppData\Local\Programs\Microsoft VS Code\Code.exe");
-            start_program(r"c:\Program Files\WindowsApps\MSTeams_24295.605.3225.8804_x64__8wekyb3d8bbwe\ms-teams.exe");
-            start_program(r"C:\Program Files\Google\Chrome\Application\chrome.exe");
+            start_program(&app_paths[0]); // VS Code
+            start_program(&app_paths[1]); // Teams
+            start_program(&app_paths[2]); // Chrome
             thread::sleep(Duration::from_secs(3));
         }
         "2" => {
             println!("Coding");
-            start_program(r"c:\Users\stark\AppData\Local\Programs\Microsoft VS Code\Code.exe");
-            start_program(r"C:\Program Files\Google\Chrome\Application\chrome.exe");
+            start_program(&app_paths[0]); // VS Code
+            start_program(&app_paths[2]); // Chrome
             thread::sleep(Duration::from_secs(3));
         }
         "3" => {
             println!("Just chilling");
-            start_program(r"C:\Program Files\Google\Chrome\Application\chrome.exe");
+            start_program(&app_paths[2]); // Chrome
             thread::sleep(Duration::from_secs(3));
         }
         "4" => {
             println!("Game coding");
-            start_program(r"C:\Program Files\Blender Foundation\Blender 4.3\blender.exe");
-            start_program(r"C:\Users\stark\Documents\Godot_v4.3-stable_mono_win64\Godot_v4.3-stable_mono_win64.exe");
+            start_program(&app_paths[3]); // Blender
+            start_program(&app_paths[4]); // Godot
             thread::sleep(Duration::from_secs(3));
         }
         "0" => {
@@ -55,15 +65,15 @@ fn main() {
             thread::sleep(Duration::from_secs(3));
         }
         _ => {
-            println!("Ismeretlen opció! Próbáld újra.");
+            println!("Unknown option! Try again.");
         }
     }
 }
 
 fn start_program(program: &str) {
     match Command::new(program).spawn() {
-        Ok(_) => println!("{} sikeresen elindítva!", program),
-        Err(e) => eprintln!("Hiba történt a(z) {} indításakor: {}", program, e),
+        Ok(_) => println!("{} started successfully!", program),
+        Err(e) => eprintln!("Error starting {}: {}", program, e),
     }
 }
 
@@ -72,4 +82,18 @@ fn set_cmd_title(title: &str) {
         .args(["/c", "title", title])
         .status()
         .expect("Failed to set CMD title");
+}
+
+fn read_config(path: &str) -> io::Result<Vec<String>> {
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+
+    let mut lines = Vec::new();
+    for line in reader.lines() {
+        let line = line?;
+        if !line.trim().is_empty() {
+            lines.push(line);
+        }
+    }
+    Ok(lines)
 }
